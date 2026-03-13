@@ -13,7 +13,7 @@ const app = express();
 
 app.use(express.json()); 
 app.use(cors({
-  origin: 'https://limo-admin-git-main-seif-amrs-projects.vercel.app', // Your frontend URL
+  origin: '*', // Your frontend URL
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
