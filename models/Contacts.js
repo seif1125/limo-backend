@@ -1,16 +1,35 @@
+// models/ContactSettings.js
 const mongoose = require('mongoose');
 
-const contactSchema = new mongoose.Schema({
-  phone: String,
-  email: String,
-  whatsapp: String,
-  facebook: String,
-  instagram: String,
+const contactSettingsSchema = new mongoose.Schema({
+  // Enforces only one document in the collection
+  isGlobal: { type: Boolean, default: true, unique: true },
+  
+  emails: {
+    supportMail: { type: String, default: "support@viplimoegypt.com" },
+    reservationMail: { type: String, default: "reservations@viplimoegypt.com" }
+  },
+  phones: {
+    whatsapp1: { type: String, default: "+201222708033" },
+    whatsapp2: { type: String, default: "" },
+    hotline: { type: String, default: "" } // Good for VIP services
+  },
+  socials: {
+    facebook: { type: String, default: "" },
+    instagram: { type: String, default: "" },
+    tiktok: { type: String, default: "" }, // Highly recommended for visual car showcases
+    linkedin: { type: String, default: "" } // Great for B2B executive travel
+  },
   locations: [{
-    name: { en: String, ar: String },
-    address: { en: String, ar: String },
-    mapsUrl: String
-  }]
+    en: { type: String, required: true },
+    ar: { type: String,  },
+    href: { type: String, required: true },
+    workingHours:{
+      en: { type: String, default: "24/7 Available",required:true },
+      ar: { type: String, default: "متاح على مدار 24 ساعة" }
+    }
+  }],
+
 }, { timestamps: true });
 
-module.exports = mongoose.model('Contact', contactSchema);
+module.exports = mongoose.model('ContactSettings', contactSettingsSchema);

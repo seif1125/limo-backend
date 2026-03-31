@@ -31,7 +31,8 @@ app.use('/api/cars', require('./routes/carRoutes'));
 app.use('/api/rentals', require('./routes/rentalRoutes'));
 app.use('/api/banners', require('./routes/bannerRoutes'));
 app.use('/api/testimonials', testimonialRoutes);
-app.use('/api/contact', require('./routes/contactRoutes'));
+app.use('/api/app-settings', require('./routes/settingsRoute'));
+app.use('/api/categories', require('./routes/categoryRoutes'));
 
 // Start Server
 const PORT = process.env.PORT || 5050;

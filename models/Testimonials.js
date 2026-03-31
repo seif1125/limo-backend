@@ -1,27 +1,39 @@
 const mongoose = require('mongoose');
 
 const testimonialSchema = new mongoose.Schema({
-  name: {
-    en: { type: String, required: true, trim: true },
-    ar: { type: String, required: true, trim: true }
-  },
-  title: {
-    en: { type: String, required: true, trim: true },
-    ar: { type: String, required: true, trim: true }
-  },
-  text: {
-    en: { type: String, required: true },
-    ar: { type: String, required: true }
-  },
-  imageUrl: { 
+  name: { 
     type: String, 
-    required: [true, "A profile image is required for testimonials"] 
-  }
+    required: true, 
+    trim: true 
+  },
+  title: { 
+    type: String, 
+    required: true, 
+    trim: true 
+  },
+  comment: { 
+    type: String, 
+    required: true 
+  }, // Changed from 'text' to 'comment'
+  rating: { 
+    type: Number, 
+    default: 5, 
+    min: 1, 
+    max: 5 
+  },
+  origin: { 
+    type: String, 
+    trim: true 
+  }, // e.g., "UK" or "Egypt"
+  image: { 
+    type: String, 
+    required: [true, "A profile image URL is required"] 
+  } // Changed from 'imageUrl' to 'image'
 }, { 
-  timestamps: true // Automatically manages createdAt and updatedAt
+  timestamps: true 
 });
 
-// Optional: Add an index if you plan to search by name frequently
-testimonialSchema.index({ 'name.en': 1, 'name.ar': 1 });
+// Index for faster searching by name or company title
+testimonialSchema.index({ name: 1, title: 1 });
 
 module.exports = mongoose.model('Testimonial', testimonialSchema);

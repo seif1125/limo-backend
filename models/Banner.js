@@ -1,22 +1,26 @@
 const mongoose = require('mongoose');
 
 const bannerSchema = new mongoose.Schema({
-  title: {
-    en: { type: String, required: true },
-    ar: { type: String, required: true }
+  // CHANGE THIS: Remove the { en, ar } objects
+  title: { 
+    type: String, 
+    required: true 
   },
-  subtitle: {
-    en: { type: String, required: true },
-    ar: { type: String, required: true }
+  subtitle: { 
+    type: String, 
+    required: true 
   },
-  imageUrl: { type: String, required: true },
-  button1: {
-    // This MUST be an object with 'en' and 'ar' to match your payload
-    text: {
-      en: { type: String, default: "" },
-      ar: { type: String, default: "" }
-    },
-    link: { type: String, default: "" }
+  imageUrl: { 
+    type: String, 
+    required: true 
+  },
+  buttonText: { 
+    type: String, 
+    default: '' 
+  },
+  buttonUrl: { 
+    type: String, 
+    default: '' 
   }
 }, { timestamps: true });
 

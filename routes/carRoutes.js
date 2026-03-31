@@ -3,140 +3,107 @@ const router = express.Router();
 const Car = require('../models/Car');
 const cloudinary = require('cloudinary').v2;
 
-// 1. GET ALL CARS
+/**
+ * HELPER: Validation check for Rental Logic
+ * Ensures if Full Day is enabled, the required sub-fields exist.
+ */
+const validateRentalOptions = (data) => {
+  if (data.rentalOptions?.isFullDayRental) {
+    const { fullDayHours, limitKilometers, extraKmCost, extraHourCost } = data.rentalOptions;
+    if (!fullDayHours || !limitKilometers || extraKmCost === undefined || extraHourCost === undefined) {
+      return "Full Day Rental requires: hours, km limit, extra km cost, and extra hour cost.";
+    }
+  }
+  return null;
+};
+
+// 1. GET ALL CARS (With Category Details)
 router.get('/', async (req, res) => {
   try {
-    const cars = await Car.find().sort({ createdAt: -1 });
+    const cars = await Car.find()
+      .populate('category', 'name') // Only fetch the name for performance
+      .sort({ createdAt: -1 });
     res.json(cars);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: "Database retrieval error", error: err.message });
   }
 });
 
-// 2. GET SINGLE CAR (For the Edit Page)
+// 2. GET SINGLE CAR
 router.get('/:id', async (req, res) => {
   try {
-    const car = await Car.findById(req.params.id);
-    if (!car) return res.status(404).json({ message: "Car not found" });
+    const car = await Car.findById(req.params.id).populate('category');
+    if (!car) return res.status(404).json({ message: "Vehicle not found" });
     res.json(car);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: "Error fetching vehicle", error: err.message });
   }
 });
 
 // 3. ADD NEW CAR
 router.post('/', async (req, res) => {
+  const error = validateRentalOptions(req.body);
+  if (error) return res.status(400).json({ message: error });
+
   try {
     const newCar = new Car(req.body);
     const savedCar = await newCar.save();
-    res.status(201).json(savedCar);
+    // Re-populate category before sending back
+    const populatedCar = await Car.findById(savedCar._id).populate('category');
+    res.status(201).json(populatedCar);
   } catch (err) {
-    res.status(400).json({ message: "Validation Error", details: err.errors });
+    res.status(400).json({ message: "Validation Error", error: err.message });
   }
 });
 
 // 4. EDIT CAR
 router.put('/:id', async (req, res) => {
+  const error = validateRentalOptions(req.body);
+  if (error) return res.status(400).json({ message: error });
+
   try {
+    // Note: { runValidators: true, context: 'query' } ensures Mongoose 
+    // custom validators work on updates.
     const updatedCar = await Car.findByIdAndUpdate(
       req.params.id, 
       { $set: req.body }, 
-      { new: true, runValidators: true }
-    );
+      { new: true, runValidators: true, context: 'query' }
+    ).populate('category');
+
+    if (!updatedCar) return res.status(404).json({ message: "Vehicle not found" });
     res.json(updatedCar);
   } catch (err) {
-    res.status(400).json({ message: "Update failed", details: err.errors });
+    res.status(400).json({ message: "Update failed", error: err.message });
   }
 });
 
-// 5. DELETE CAR & CLOUDINARY IMAGES
-// routes/carRoutes.js
-// routes/carRoutes.js
-// routes/carRoutes.js
+// 5. DELETE CAR & CLEANUP CLOUDINARY
 router.delete('/:id', async (req, res) => {
   try {
     const car = await Car.findById(req.params.id);
-    
-    if (!car) {
-      return res.status(404).json({ message: "Vehicle not found" });
+    if (!car) return res.status(404).json({ message: "Vehicle not found" });
+
+    // Cloudinary Image Cleanup Logic
+    if (car.images && car.images.length > 0) {
+      const deletePromises = car.images
+        .filter(url => url.includes('cloudinary'))
+        .map(url => {
+          // Extracts publicId: http://res.cloudinary.com/demo/image/upload/v1234/sample.jpg -> sample
+          const parts = url.split('/');
+          const filename = parts[parts.length - 1];
+          const publicId = filename.split('.')[0];
+          return cloudinary.uploader.destroy(publicId);
+        });
+      
+      // Fire all deletes in parallel
+      await Promise.allSettled(deletePromises);
     }
 
-    // SAFE CLOUDINARY LOGIC
-    if (car.images && Array.isArray(car.images)) {
-      for (const url of car.images) {
-        try {
-          // Check if url is a valid string before splitting
-          if (typeof url === 'string' && url.includes('cloudinary')) {
-            const publicId = url.split('/').pop().split('.')[0];
-            await cloudinary.uploader.destroy(publicId);
-            console.log(`Deleted image: ${publicId}`);
-          }
-        } catch (cloudinaryErr) {
-          // If cloudinary fails, log it but DON'T crash the request
-          console.error("Cloudinary asset skip:", url);
-        }
-      }
-    }
-
-    // FINAL DATABASE DELETE
     await car.deleteOne();
-    
-    res.status(200).json({ 
-      success: true, 
-      message: "Car deleted successfully from database" 
-    });
-
+    res.status(200).json({ success: true, message: "Vehicle and associated assets removed" });
   } catch (err) {
-    // This will print the EXACT reason for the 500 error in your terminal
-    console.error("CRITICAL DELETE ERROR:", err); 
-    res.status(500).json({ 
-      success: false, 
-      message: "Internal Server Error", 
-      error: err.message 
-    });
-  }
-});// routes/carRoutes.js
-router.delete('/:id', async (req, res) => {
-  try {
-    const car = await Car.findById(req.params.id);
-    
-    if (!car) {
-      return res.status(404).json({ message: "Vehicle not found" });
-    }
-
-    // SAFE CLOUDINARY LOGIC
-    if (car.images && Array.isArray(car.images)) {
-      for (const url of car.images) {
-        try {
-          // Check if url is a valid string before splitting
-          if (typeof url === 'string' && url.includes('cloudinary')) {
-            const publicId = url.split('/').pop().split('.')[0];
-            await cloudinary.uploader.destroy(publicId);
-            console.log(`Deleted image: ${publicId}`);
-          }
-        } catch (cloudinaryErr) {
-          // If cloudinary fails, log it but DON'T crash the request
-          console.error("Cloudinary asset skip:", url);
-        }
-      }
-    }
-
-    // FINAL DATABASE DELETE
-    await car.deleteOne();
-    
-    res.status(200).json({ 
-      success: true, 
-      message: "Car deleted successfully from database" 
-    });
-
-  } catch (err) {
-    // This will print the EXACT reason for the 500 error in your terminal
-    console.error("CRITICAL DELETE ERROR:", err); 
-    res.status(500).json({ 
-      success: false, 
-      message: "Internal Server Error", 
-      error: err.message 
-    });
+    res.status(500).json({ success: false, error: "Cleanup or deletion failed", details: err.message });
   }
 });
+
 module.exports = router;
