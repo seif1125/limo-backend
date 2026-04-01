@@ -2,31 +2,38 @@ const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const connectDB = require('./config/db');
-const testimonialRoutes=require('./routes/testimonialRoutes')
+const testimonialRoutes = require('./routes/testimonialRoutes');
+
 // Load environment variables
 dotenv.config();
 
-// Connect to MongoDB Atlas
-connectDB();
-
 const app = express();
 
+// 1. MIDDLEWARE
 app.use(express.json()); 
 app.use(cors({
-  origin: true, // This reflects the request origin, effectively allowing any domain but more reliably than '*'
+  origin: true, 
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true // Set to true if you are using JWT in cookies or sessions
+  credentials: true 
 }));
-// Essential for reading req.body
 
-// Main Landing Route
+// 2. DATABASE CONNECTION MIDDLEWARE (Serverless Optimization)
+// This ensures we are connected before processing any request
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    res.status(500).json({ error: "Database connection failed" });
+  }
+});
+
+// 3. ROUTES
 app.get('/', (req, res) => {
   res.json({ message: "Monochrome Limo API v1.0", status: "Active" });
 });
 
-// Route Initializations
-// These lines combine to create the full URLs (e.g., /api/auth/login)
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/cars', require('./routes/carRoutes'));
 app.use('/api/rentals', require('./routes/rentalRoutes'));
@@ -35,9 +42,13 @@ app.use('/api/testimonials', testimonialRoutes);
 app.use('/api/app-settings', require('./routes/settingsRoute'));
 app.use('/api/categories', require('./routes/categoryRoutes'));
 
-// Start Server
-const PORT = process.env.PORT || 5050;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`🔑 Auth Test: http://localhost:${PORT}/api/auth/test`);
-});
+// 4. EXPORT FOR VERCEL (The most important part)
+// We keep the listener for local development, but Vercel uses the export.
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 5050;
+  app.listen(PORT, () => {
+    console.log(`🚀 Local Server running on http://localhost:${PORT}`);
+  });
+}
+
+module.exports = app;
