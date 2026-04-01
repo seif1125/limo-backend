@@ -13,9 +13,10 @@ const app = express();
 
 app.use(express.json()); 
 app.use(cors({
-  origin: '*', // Your frontend URL
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  origin: true, // This reflects the request origin, effectively allowing any domain but more reliably than '*'
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true // Set to true if you are using JWT in cookies or sessions
 }));
 // Essential for reading req.body
 
