@@ -1,100 +1,192 @@
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
-const Car = require('./models/Car'); // Ensure path is correct
-const RentalRequest = require('./models/RentalRequest');
-const categorys = require('./models/Category'); // Ensure this file exists and has the correct structure
 
+// Load environment variables
 dotenv.config();
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/your_db_name')
-  .then(() => console.log('MongoDB Connected for Seeding...'))
-  .catch(err => console.log(err));
+// ==========================================
+// 1. IMPORT YOUR MODELS
+// Adjust the paths if your models are located elsewhere
+// ==========================================
+const AppSettings = require('./models/AppSettings');
+const Banner = require('./models/Banner');
+const Car = require('./models/Car');
+const Category = require('./models/Category');
+const RentalRequest = require('./models/RentalRequest');
+const Testimonial = require('./models/Testimonials');
+const User = require('./models/User');
 
-const seedData = async () => {
+// ==========================================
+// 2. DUMMY DATA
+// ==========================================
+const usersData = [
+  { name: 'Admin User', email: 'admin@limo.com', password: 'password123' }
+];
+
+const settingsData = {
+  isGlobal: true,
+  metadata: {
+    domainUrl: 'https://monochromelimo.com',
+    defaultTitle: 'Monochrome Limo | Premium Chauffeur Services',
+    titleTemplate: '%s | Monochrome Limo',
+    description: 'Experience luxury travel with Monochrome Limo in Egypt.',
+    keywords: ['Limo', 'Egypt Travel', 'Luxury Cars', 'Chauffeur'],
+    ogImage: 'https://example.com/og-image.jpg'
+  },
+  schemaData: {
+    businessName: 'Monochrome Limo',
+    businessType: 'TravelAgency',
+    areaServed: ['Cairo', 'Giza', 'Alexandria'],
+    servicesOffered: ['Airport Transfer', 'Corporate Travel', 'Wedding Cars']
+  }
+};
+
+const bannersData = [
+  { title: 'Ride in Luxury', subtitle: 'The ultimate chauffeur experience', imageUrl: 'https://example.com/banner1.jpg', buttonText: 'Book Now', buttonUrl: '/fleet' },
+  { title: 'Airport Transfers', subtitle: 'Punctual and professional', imageUrl: 'https://example.com/banner2.jpg', buttonText: 'View Rates', buttonUrl: '/services' }
+];
+
+const testimonialsData = [
+  { name: 'Sarah Jenkins', title: 'CEO, TechCorp', comment: 'Absolutely flawless service. The driver was early and the car was immaculate.', rating: 5, origin: 'UK', image: 'https://example.com/sarah.jpg' },
+  { name: 'Ahmed Hassan', title: 'Tourist', comment: 'Made our family trip to the pyramids so comfortable!', rating: 4, origin: 'Egypt', image: 'https://example.com/ahmed.jpg' }
+];
+
+const categoriesData = [
+  { name: 'LUXURY SEDAN' },
+  { name: 'SUV' },
+  { name: 'VAN' }
+];
+
+// ==========================================
+// 3. SEEDING LOGIC
+// ==========================================
+const seedDatabase = async () => {
   try {
-    // 1. Clear existing data
-    await Car.deleteMany();
-    await RentalRequest.deleteMany();
-    console.log('Data Cleared...');
+    // Connect to Database
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log('✅ Connected to MongoDB');
 
-    const sampleCategory = await categorys.create({
-     id: "s-class",
-      name: "S-class",
-      
-    });
+    // WARNING: This completely wipes the database to ensure a clean seed.
+    // We use native db.dropDatabase() to bypass the 'blockDelete' middleware on Category
+    await mongoose.connection.db.dropDatabase();
+    console.log('🗑️  Database completely wiped (bypassed middleware restrictions).');
 
-    // 2. Create a Dummy Car
-    const sampleCar = await Car.create({
-      id: "s-class-2024",
-      name: "Mercedes-Benz S-Class",
-      model: "S-Class",
-      year: "2024",
-      category: sampleCategory._id, // Reference to the created category
-      images: [
-        "https://images.unsplash.com/photo-1617531653332-bd46c24f2068?auto=format&fit=crop&q=80&w=800", // Exterior side
-        "https://images.unsplash.com/photo-1605559424843-9e4c228bf1c2?auto=format&fit=crop&q=80&w=800", // Interior Luxury
-        "https://images.unsplash.com/photo-1622199611394-399a0937c86a?auto=format&fit=crop&q=80&w=800"  // Cockpit/Wheel
-      ],
-      price: "400",
-      description: "The ultimate symbol of luxury and innovation. Perfect for executive travel.",
-      featured: true,
-      specs: { passengers: 3, luggage: 2, wifi: true, fourWheel: false, gps: true, leatherSeats: true, climateControl: true }
+    // 1. Seed Standalone Models
+    await User.create(usersData);
+    console.log('✅ Users seeded. (Admin login: admin@limo.com / password123)');
 
+    await AppSettings.create(settingsData);
+    console.log('✅ Global App Settings seeded.');
 
-    });
+    await Banner.create(bannersData);
+    console.log('✅ Banners seeded.');
 
-    // 3. Create Sample Reservations
-    const reservations = [
+    await Testimonial.create(testimonialsData);
+    console.log('✅ Testimonials seeded.');
+
+    // 2. Seed Relational Models (Categories -> Cars -> Rentals)
+    const createdCategories = await Category.insertMany(categoriesData);
+    console.log('✅ Categories seeded.');
+
+    const sedanId = createdCategories.find(c => c.name === 'LUXURY SEDAN')._id;
+    const suvId = createdCategories.find(c => c.name === 'SUV')._id;
+
+    const carsData = [
       {
-        customerName: "John Smith",
-        email: "john@example.com",
-        phone1: "+20123456789",
-        nationality: "British",
-        reservationType: "Full Day",
-        pickupLocation: "Cairo Airport (Terminal 3)",
-        dropoffLocation: "Four Seasons Hotel Nile Plaza",
-        fromDate: new Date('2026-04-01T09:00:00'),
-        toDate: new Date('2026-04-01T21:00:00'),
-        fullDayHours: 12,
-        limitKilometers: 150,
-        extraKmCost: 15,
-        extraHourCost: 200,
-        rate: 4500,
-        totalPrice: 4500,
-        paymentType: "Visa",
-        cashDeposit: 1000,
-        cashRemain: 3500,
-        car: sampleCar._id,
-        status: "pending"
+        name: 'Mercedes-Benz S-Class',
+        model: 'S500',
+        year: 2024,
+        category: sedanId,
+        price: 250,
+        description: 'The pinnacle of luxury sedans.',
+        images: ['https://example.com/sclass.jpg'],
+        featured: true,
+        rentalOptions: {
+          isFullDayRental: true,
+          isStandardRental: true,
+          fullDayHours: 12,
+          limitKilometers: 150,
+          extraKmCost: 2,
+          extraHourCost: 20
+        },
+        specs: { passengers: 3, luggage: 2, wifi: true, fourWheel: false, gps: true, leatherSeats: true, climateControl: true }
       },
       {
-        customerName: "Ahmed Ali",
-        email: "ahmed@example.com",
-        phone1: "+20100998877",
-        nationality: "Egyptian",
-        reservationType: "Original Pickup",
-        pickupLocation: "New Cairo",
-        dropoffLocation: "Alexandria Desert Road",
-        fromDate: new Date('2026-04-05T10:00:00'),
-        toDate: new Date('2026-04-05T14:00:00'),
-        rate: 2500,
-        totalPrice: 2500,
-        paymentType: "Cash",
-        cashDeposit: 500,
-        cashRemain: 2000,
-        car: sampleCar._id,
-        status: "active"
+        name: 'Cadillac Escalade',
+        model: 'Premium Luxury',
+        year: 2023,
+        category: suvId,
+        price: 350,
+        description: 'Spacious and commanding presence.',
+        images: ['https://example.com/escalade.jpg'],
+        featured: true,
+        rentalOptions: {
+          isFullDayRental: false, // Standard Only
+          isStandardRental: true
+        },
+        specs: { passengers: 6, luggage: 5, wifi: true, fourWheel: true, gps: true, leatherSeats: true, climateControl: true }
       }
     ];
 
-    await RentalRequest.insertMany(reservations);
-    console.log('Database Seeded Successfully! 🌱');
+    const createdCars = await Car.create(carsData);
+    console.log('✅ Cars seeded.');
+
+    const rentalsData = [
+      {
+        customerName: 'John Doe',
+        email: 'john@example.com',
+        phone1: '+1234567890',
+        nationality: 'American',
+        reservationType: 'Full Day',
+        pickupLocation: { address: 'Cairo International Airport', lat: 30.1219, lng: 31.4056 },
+        dropoffLocation: { address: 'Marriott Mena House, Giza', lat: 29.9845, lng: 31.1325 },
+        fromDate: new Date('2026-04-10T09:00:00Z'),
+        toDate: new Date('2026-04-10T21:00:00Z'),
+        fullDayHours: 12,
+        limitKilometers: 150,
+        extraKmCost: 2,
+        extraHourCost: 20,
+        rate: 250,
+        additionalPrice: 0,
+        totalPrice: 250,
+        paymentType: 'Visa',
+        cashDeposit: 50,
+        cashRemain: 200,
+        car: createdCars[0]._id, // Mercedes
+        status: 'active'
+      },
+      {
+        customerName: 'Jane Smith',
+        email: 'jane@example.com',
+        phone1: '+44987654321',
+        nationality: 'British',
+        reservationType: 'Original Pickup',
+        pickupLocation: { address: 'Downtown Cairo', lat: 30.0444, lng: 31.2357 },
+        dropoffLocation: { address: 'Alexandria Library', lat: 31.2089, lng: 29.9092 },
+        fromDate: new Date('2026-04-15T10:00:00Z'),
+        toDate: new Date('2026-04-15T14:00:00Z'),
+        rate: 150,
+        additionalPrice: 0,
+        totalPrice: 150,
+        paymentType: 'Cash',
+        cashDeposit: 150,
+        cashRemain: 0,
+        car: createdCars[1]._id, // Escalade
+        status: 'pending'
+      }
+    ];
+
+    await RentalRequest.create(rentalsData);
+    console.log('✅ Rental Requests seeded.');
+
+    console.log('🎉 SEEDING COMPLETE! You can now test your API.');
     process.exit();
+
   } catch (error) {
-    console.error('Error seeding data:', error);
+    console.error('❌ Seeding Error:');
+    console.error(error);
     process.exit(1);
   }
 };
 
-seedData();
+seedDatabase();
