@@ -1,18 +1,17 @@
-// routes/settingsRoutes.js
 const express = require('express');
 const router = express.Router();
 
-// Import your models directly into the route file
+// 1. FIX: Ensure the import path and variable name match your file
+// Based on your previous message, the file is likely 'ContactSettings.js'
 const AppSettings = require('../models/AppSettings');
-const ContactSettings = require('../models/Contacts');
+const ContactSettings = require('../models/Contacts'); 
 
 // ==========================================
-// GET /api/settings
-// Fetch both App and Contact settings
+// GET /api/app-settings
 // ==========================================
 router.get('/', async (req, res) => {
   try {
-    // Fetch both simultaneously for maximum speed
+    // Using .lean() for faster, read-only performance
     const [appSettings, contactSettings] = await Promise.all([
       AppSettings.findOne({ isGlobal: true }).lean(),
       ContactSettings.findOne({ isGlobal: true }).lean()
@@ -21,59 +20,66 @@ router.get('/', async (req, res) => {
     res.status(200).json({
       success: true,
       data: {
+        // This structure matches your admin panel's expectations
         appSettings: appSettings || null,
         contactSettings: contactSettings || null
       }
     });
   } catch (error) {
     console.error("Settings fetch error:", error);
-    res.status(500).json({ success: false, message: "Server Error" });
+    res.status(500).json({ success: false, message: "Failed to fetch settings" });
   }
 });
 
 // ==========================================
-// PUT /api/settings
-// Update App and Contact settings from Admin Panel
+// PUT /api/app-settings
 // ==========================================
-// routes/settingsRoutes.js
-
 router.put('/', async (req, res) => {
   try {
-    const { appSettingsData, contactSettingsData } = req.body;
+    // Destructure based on the specific keys sent from your frontend
+    const { appSettings, contactSettings } = req.body;
+    
     let updatedApp = null;
     let updatedContact = null;
 
-    // 1. Only update AppSettings if data was sent
-    if (appSettingsData) {
-      updatedApp = await AppSettings.findOneAndUpdate(
-        { isGlobal: true }, 
-        { $set: appSettingsData }, // Using $set is safer
-        { new: true, upsert: true, runValidators: true }
+    // Use a Promise array to update both in parallel if both are provided
+    const updatePromises = [];
+
+    if (appSettings) {
+      updatePromises.push(
+        AppSettings.findOneAndUpdate(
+          { isGlobal: true },
+          { $set: appSettings },
+          { new: true, upsert: true, runValidators: true }
+        ).then(res => updatedApp = res)
       );
     }
 
-    // 2. Only update ContactSettings if data was sent
-    if (contactSettingsData) {
-      updatedContact = await ContactSettings.findOneAndUpdate(
-        { isGlobal: true }, 
-        { $set: contactSettingsData }, 
-        { new: true, upsert: true, runValidators: true }
+    if (contactSettings) {
+      updatePromises.push(
+        ContactSettings.findOneAndUpdate(
+          { isGlobal: true },
+          { $set: contactSettings },
+          { new: true, upsert: true, runValidators: true }
+        ).then(res => updatedContact = res)
       );
     }
+
+    await Promise.all(updatePromises);
 
     res.status(200).json({
       success: true,
-      message: "Settings updated successfully",
-      data: { 
-        appSettings: updatedApp, 
-        contactSettings: updatedContact 
+      message: "Settings synchronized successfully",
+      data: {
+        appSettings: updatedApp,
+        contactSettings: updatedContact
       }
     });
   } catch (error) {
     console.error("Settings update error:", error);
     res.status(500).json({ 
       success: false, 
-      message: error.message || "Internal Server Error" 
+      message: error.message || "Error saving configuration" 
     });
   }
 });

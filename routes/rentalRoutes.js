@@ -14,6 +14,25 @@ router.get('/', async (req, res) => {
     }
 });
 
+// 5. GET SINGLE (By ID with Car Details)
+router.get('/:id', async (req, res) => {
+    try {
+        const data = await RentalRequest.findById(req.params.id).populate('car');
+        
+        if (!data) {
+            return res.status(404).json({ message: "Reservation record not found" });
+        }
+        
+        res.json(data);
+    } catch (err) {
+        // Handle invalid MongoDB IDs specifically
+        if (err.name === 'CastError') {
+            return res.status(400).json({ message: "Invalid Reservation ID format" });
+        }
+        res.status(500).json({ message: err.message });
+    }
+});
+
 // 2. CREATE NEW RESERVATION
 router.post('/', async (req, res) => {
     try {
