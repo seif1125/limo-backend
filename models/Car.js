@@ -1,34 +1,29 @@
 const mongoose = require('mongoose');
 
-// Helper function to handle Mongoose's tricky validation context
 function isFullDayRequired() {
-  // Scenario 1: Creating a new car (.save())
-  if (this instanceof mongoose.Document) {
-    return this.rentalOptions?.isFullDayRental === true;
-  }
-
-  // Scenario 2: Updating an existing car (.findByIdAndUpdate())
+  if (this instanceof mongoose.Document) return this.rentalOptions?.isFullDayRental === true;
   if (this.getUpdate) {
-    const updatePayload = this.getUpdate();
-    // Safely look for the field inside the update payload or the $set operator
-    const rentalOpts = updatePayload.$set?.rentalOptions || updatePayload.rentalOptions;
+    const update = this.getUpdate();
+    const rentalOpts = update.$set?.rentalOptions || update.rentalOptions;
     return rentalOpts?.isFullDayRental === true;
   }
-
   return false;
 }
 
 const carSchema = new mongoose.Schema({
-  name: { type: String, required: true, trim: true },
-  model: { type: String, required: true }, 
+  // Multilingual Fields
+  name_en: { type: String, required: true, trim: true },
+  name_ar: { type: String, required: true, trim: true },
+  
+  model_en: { type: String, required: true },
+  model_ar: { type: String, required: true },
+  
+  description_en: { type: String, required: true },
+  description_ar: { type: String, required: true },
+
   year: { type: Number, required: true },
-  category: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'Category', 
-    required: true 
-  },
+  category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
   price: { type: Number, required: true },
-  description: { type: String, required: true },
   images: [{ type: String }],
   featured: { type: Boolean, default: false },
   isAvailable: { type: Boolean, default: true },
@@ -36,26 +31,10 @@ const carSchema = new mongoose.Schema({
   rentalOptions: {
     isFullDayRental: { type: Boolean, default: false },
     isStandardRental: { type: Boolean, default: true },
-
-    // Apply the custom validator to your 4 fields
-    fullDayHours: { 
-      type: Number, 
-      min: 1, 
-      max: 24,
-      required: [isFullDayRequired, 'Full Day Hours are required for Full Day Rentals.']
-    },
-    limitKilometers: { 
-      type: Number,
-      required: [isFullDayRequired, 'Included Kilometers are required for Full Day Rentals.'] 
-    },
-    extraKmCost: { 
-      type: Number,
-      required: [isFullDayRequired, 'Extra KM Cost is required for Full Day Rentals.']
-    },
-    extraHourCost: { 
-      type: Number,
-      required: [isFullDayRequired, 'Extra Hour Cost is required for Full Day Rentals.']
-    }
+    fullDayHours: { type: Number, min: 1, max: 24, required: [isFullDayRequired, 'Required for Full Day'] },
+    limitKilometers: { type: Number, required: [isFullDayRequired, 'Required for Full Day'] },
+    extraKmCost: { type: Number, required: [isFullDayRequired, 'Required for Full Day'] },
+    extraHourCost: { type: Number, required: [isFullDayRequired, 'Required for Full Day'] }
   },
 
   specs: {

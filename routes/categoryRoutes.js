@@ -15,12 +15,19 @@ router.get('/', async (req, res) => {
 // ADD NEW CATEGORY
 router.post('/', async (req, res) => {
   try {
-    const newCategory = new Category({ name: req.body.name });
+    // Expecting: { name_en: "...", name_ar: "..." }
+    const { name_en, name_ar } = req.body;
+    
+    const newCategory = new Category({ 
+      name_en, 
+      name_ar 
+    });
+    
     const saved = await newCategory.save();
     res.status(201).json(saved);
   } catch (err) {
     if (err.code === 11000) {
-      return res.status(400).json({ message: "This category already exists." });
+      return res.status(400).json({ message: err.message });
     }
     res.status(500).json({ message: "Server error during creation" });
   }

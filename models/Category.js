@@ -1,12 +1,19 @@
 const mongoose = require('mongoose');
 
 const categorySchema = new mongoose.Schema({
-  name: { 
+  name_en: { 
     type: String, 
     required: true, 
-    unique: true, 
+
     trim: true,
     uppercase: true // Keeps data consistent (e.g., "SEDAN" vs "sedan")
+  },
+  name_ar: { 
+    type: String, 
+    required: true, 
+  
+    trim: true,
+    uppercase: true // Keeps data consistent (e.g., "سيدان" vs "سيدان")
   }
 }, { 
   timestamps: true 

@@ -36,51 +36,42 @@ router.get('/', async (req, res) => {
 // ==========================================
 router.put('/', async (req, res) => {
   try {
-    // Destructure based on the specific keys sent from your frontend
-    const { appSettings, contactSettings } = req.body;
+    const { appSettingsData, contactSettingsData } = req.body;
     
+    // We store the results of the operations directly
     let updatedApp = null;
     let updatedContact = null;
 
-    // Use a Promise array to update both in parallel if both are provided
-    const updatePromises = [];
-
-    if (appSettings) {
-      updatePromises.push(
-        AppSettings.findOneAndUpdate(
-          { isGlobal: true },
-          { $set: appSettings },
-          { new: true, upsert: true, runValidators: true }
-        ).then(res => updatedApp = res)
+    // Use await directly to capture the result of each operation
+    if (appSettingsData) {
+      updatedApp = await AppSettings.findOneAndUpdate(
+        { isGlobal: true },
+        { $set: appSettingsData },
+        { new: true, upsert: true, runValidators: true }
       );
     }
 
-    if (contactSettings) {
-      updatePromises.push(
-        ContactSettings.findOneAndUpdate(
-          { isGlobal: true },
-          { $set: contactSettings },
-          { new: true, upsert: true, runValidators: true }
-        ).then(res => updatedContact = res)
+    if (contactSettingsData) {
+      updatedContact = await ContactSettings.findOneAndUpdate(
+        { isGlobal: true },
+        { $set: contactSettingsData },
+        { new: true, upsert: true, runValidators: true }
       );
     }
 
-    await Promise.all(updatePromises);
-
+    // Now these variables are defined and populated
     res.status(200).json({
       success: true,
-      message: "Settings synchronized successfully",
       data: {
         appSettings: updatedApp,
         contactSettings: updatedContact
       }
     });
+
   } catch (error) {
     console.error("Settings update error:", error);
-    res.status(500).json({ 
-      success: false, 
-      message: error.message || "Error saving configuration" 
-    });
+    // Returning here ensures the function stops if an error occurs
+    return res.status(500).json({ success: false, message: "Failed to update settings" });
   }
 });
 

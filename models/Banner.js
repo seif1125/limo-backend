@@ -1,27 +1,19 @@
 const mongoose = require('mongoose');
 
 const bannerSchema = new mongoose.Schema({
-  // CHANGE THIS: Remove the { en, ar } objects
-  title: { 
-    type: String, 
-    required: true 
-  },
-  subtitle: { 
-    type: String, 
-    required: true 
-  },
-  imageUrl: { 
-    type: String, 
-    required: true 
-  },
-  buttonText: { 
-    type: String, 
-    default: '' 
-  },
-  buttonUrl: { 
-    type: String, 
-    default: '' 
-  }
+  // Global Field
+  imageUrl: { type: String, required: true },
+  buttonUrl: { type: String, default: '' },
+
+  // Localized Fields (English)
+  title_en: { type: String, required: true },
+  subtitle_en: { type: String, required: true },
+  buttonText_en: { type: String, default: '' },
+
+  // Localized Fields (Arabic)
+  title_ar: { type: String, required: true },
+  subtitle_ar: { type: String, required: true },
+  buttonText_ar: { type: String, default: '' }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Banner', bannerSchema);

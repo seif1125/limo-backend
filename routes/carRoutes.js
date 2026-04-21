@@ -20,12 +20,37 @@ const validateRentalOptions = (data) => {
 // 1. GET ALL CARS (With Category Details)
 router.get('/', async (req, res) => {
   try {
-    const cars = await Car.find()
-      .populate('category', 'name') // Only fetch the name for performance
-      .sort({ createdAt: -1 });
+  
+    const cars = await Car.find().populate('category');
     res.json(cars);
   } catch (err) {
     res.status(500).json({ message: "Database retrieval error", error: err.message });
+  }
+});
+router.get('/featured', async (req, res) => {
+  try {
+    const featuredCars = await Car.find({ 
+      featured: true, 
+      isAvailable: true 
+    })
+    .populate('category','name_en','name_ar')
+    .sort({ createdAt: -1 });
+
+    res.json(featuredCars);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching featured cars", error: err.message });
+  }
+});
+
+router.get('/available', async (req, res) => {
+  try {
+    const visibleCars = await Car.find({ isAvailable: true })
+      .populate('category').populate('name_en','name_ar')
+      .sort({ createdAt: -1 });
+
+    res.json(visibleCars);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching visible fleet", error: err.message });
   }
 });
 
@@ -83,26 +108,30 @@ router.delete('/:id', async (req, res) => {
     const car = await Car.findById(req.params.id);
     if (!car) return res.status(404).json({ message: "Vehicle not found" });
 
-    // Cloudinary Image Cleanup Logic
-    if (car.images && car.images.length > 0) {
-      const deletePromises = car.images
-        .filter(url => url.includes('cloudinary'))
-        .map(url => {
-          // Extracts publicId: http://res.cloudinary.com/demo/image/upload/v1234/sample.jpg -> sample
-          const parts = url.split('/');
-          const filename = parts[parts.length - 1];
-          const publicId = filename.split('.')[0];
-          return cloudinary.uploader.destroy(publicId);
-        });
+    // if (car.images && car.images.length > 0) {
+    //   const deletePromises = car.images
+    //     .filter(url => url.includes('cloudinary'))
+    //     .map(url => {
+    //       // 1. Get the path after '/upload/'
+    //       const parts = url.split('/upload/');
+    //       if (parts.length < 2) return Promise.resolve();
+
+    //       // 2. Remove the version (e.g., v171444444/) and the extension (.jpg)
+    //       const pathWithVersion = parts[1];
+    //       const pathWithoutVersion = pathWithVersion.replace(/^v\d+\//, ''); 
+    //       const publicId = pathWithoutVersion.substring(0, pathWithoutVersion.lastIndexOf('.'));
+
+    //       console.log("Attempting to delete Cloudinary ID:", publicId);
+    //       return cloudinary.uploader.destroy(publicId);
+    //     });
       
-      // Fire all deletes in parallel
-      await Promise.allSettled(deletePromises);
-    }
+    //   await Promise.allSettled(deletePromises);
+    // }
 
     await car.deleteOne();
-    res.status(200).json({ success: true, message: "Vehicle and associated assets removed" });
+    res.status(200).json({ success: true, message: "Vehicle and assets removed" });
   } catch (err) {
-    res.status(500).json({ success: false, error: "Cleanup or deletion failed", details: err.message });
+    res.status(500).json({ success: false, error: "Cleanup failed", details: err.message });
   }
 });
 
