@@ -33,8 +33,8 @@ router.get('/featured', async (req, res) => {
       featured: true, 
       isAvailable: true 
     })
-    .populate('category','name_en','name_ar')
-    .sort({ createdAt: -1 });
+    .populate('category')
+    .sort({ createdAt: -1 }).lean();
 
     res.json(featuredCars);
   } catch (err) {
@@ -45,7 +45,7 @@ router.get('/featured', async (req, res) => {
 router.get('/available', async (req, res) => {
   try {
     const visibleCars = await Car.find({ isAvailable: true })
-      .populate('category').populate('name_en','name_ar')
+      .populate('category')
       .sort({ createdAt: -1 });
 
     res.json(visibleCars);

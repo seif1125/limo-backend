@@ -26,7 +26,7 @@ const rentalRequestSchema = new mongoose.Schema({
 
   reservationType: { 
     type: String, 
-    enum: ['Full Day', 'Original Pickup'], 
+    enum: ['Full Day', 'Original Pickup','city to city','Airport Transfer'], 
     required: true 
   },
 
