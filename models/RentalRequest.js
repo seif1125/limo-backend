@@ -57,7 +57,7 @@ const rentalRequestSchema = new mongoose.Schema({
   cashRemain: { type: Number, default: 0 },
 
   car: { type: mongoose.Schema.Types.ObjectId, ref: 'Car', required: true },
-  status: { type: String, enum: ['pending', 'active'], default: 'pending' }
+  status: { type: String, enum: ['pending', 'active','complete'], default: 'pending' }
 }, { timestamps: true });
 
 module.exports = mongoose.model('RentalRequest', rentalRequestSchema);
