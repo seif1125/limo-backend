@@ -19,8 +19,8 @@ function isFullDayRequired() {
 
 const rentalRequestSchema = new mongoose.Schema({
   customerName: { type: String, required: true },
-  email: { type: String, required: true },
-  phone1: { type: String, required: true },
+  email: { type: String, required: false },
+  phone1: { type: String, required: false },
   phone2: { type: String },
   nationality: { type: String, required: true },
 
