@@ -17,8 +17,8 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const count = await Banner.countDocuments();
-    if (count >= 2) {
-      return res.status(400).json({ message: "Maximum of 2 banners allowed." });
+    if (count >= 4) {
+      return res.status(400).json({ message: "Maximum of 4 banners allowed." });
     }
 
     const banner = new Banner(req.body);
